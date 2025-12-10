@@ -1,3 +1,4 @@
+import math
 from fastapi import APIRouter
 from hummingbot.data_feed.candles_feed.candles_factory import CandlesFactory
 from hummingbot.strategy_v2.backtesting.backtesting_engine_base import BacktestingEngineBase
@@ -8,6 +9,23 @@ from models.backtesting import BacktestingConfig
 router = APIRouter(tags=["Backtesting"], prefix="/backtesting")
 candles_factory = CandlesFactory()
 backtesting_engine = BacktestingEngineBase()
+
+
+def clean_json_values(obj):
+    """
+    Recursively clean values that are not JSON compliant (inf, -inf, nan).
+    Replaces inf/-inf with None, and nan with None.
+    """
+    if isinstance(obj, dict):
+        return {key: clean_json_values(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [clean_json_values(item) for item in obj]
+    elif isinstance(obj, float):
+        if math.isinf(obj) or math.isnan(obj):
+            return None
+        return obj
+    else:
+        return obj
 
 
 @router.post("/run-backtesting")
@@ -46,10 +64,13 @@ async def run_backtesting(backtesting_config: BacktestingConfig):
         backtesting_results["processed_data"] = processed_data.to_dict()
         results = backtesting_results["results"]
         results["sharpe_ratio"] = results["sharpe_ratio"] if results["sharpe_ratio"] is not None else 0
-        return {
+        
+        # Clean inf/-inf/nan values to make JSON serializable
+        response = {
             "executors": executors_info,
             "processed_data": backtesting_results["processed_data"],
             "results": backtesting_results["results"],
         }
+        return clean_json_values(response)
     except Exception as e:
         return {"error": str(e)}
