@@ -3,7 +3,7 @@ FROM continuumio/miniconda3 AS builder
 
 # Install build dependencies
 RUN apt-get update && \
-    apt-get install -y python3-dev gcc && \
+    apt-get install -y libusb-1.0-0-dev gcc g++ python3-dev && \
     rm -rf /var/lib/apt/lists/*
 
 # Set working directory
