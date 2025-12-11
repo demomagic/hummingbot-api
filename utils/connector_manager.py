@@ -125,6 +125,13 @@ class ConnectorManager:
         BackendAPISecurity.login_account(account_name=account_name, secrets_manager=self.secrets_manager)
         connector_config = HummingbotAPIConfigAdapter(AllConnectorSettings.get_connector_config_keys(connector_name))
 
+        # CRITICAL FIX: Ensure the connector field matches the connector_name
+        # This is essential for testnet connectors like hyperliquid_perpetual_testnet
+        # where the connector field must be exactly "hyperliquid_perpetual_testnet"
+        # and not "hyperliquid_perpetual"
+        if hasattr(connector_config.hb_config, 'connector'):
+            setattr(connector_config.hb_config, 'connector', connector_name)
+
         for key, value in keys.items():
             setattr(connector_config, key, value)
 
